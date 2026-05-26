@@ -71,6 +71,24 @@ body{
   margin-bottom:10px;
 }
 .lc-sub{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:40px}
+.login-note{
+  margin-top:16px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.login-err{
+  margin-top:16px;
+  padding:11px 13px;
+  border:1px solid rgba(239,68,68,.35);
+  border-radius:var(--r);
+  background:var(--err-dim);
+  color:var(--err);
+  font-size:13px;
+  line-height:1.5;
+  text-align:left;
+  overflow-wrap:anywhere;
+}
 
 .btn-google{
   display:flex;align-items:center;justify-content:center;gap:12px;
@@ -372,21 +390,12 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
     <div class="lc-badge">Науковий ліцей ім. Б. Лепкого</div>
     <div class="lc-title">Відвідуваність</div>
     <div class="lc-sub">Система обліку присутності<br>членів учнівського самоврядування</div>
-    
     <button class="btn-google" id="btn-login">
-      <svg viewBox="0 0 24 24" width="20" height="20">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Увійти через Google
     </button>
-
-    <div id="login-err" style="display:none; color:#EF4444; margin-top:16px; font-size:14px; text-align:center;"></div>
-    <div id="login-loading" style="display:none; color:var(--muted); margin-top:16px; font-size:14px; text-align:center;">
-      Підключення до Google...
-    </div>
+    <div class="login-note" id="login-loading" style="display:none">Переадресовуємо до Google...</div>
+    <div class="login-err" id="login-err" style="display:none"></div>
   </div>
 </div>
 
@@ -607,22 +616,47 @@ const provider = new GoogleAuthProvider();
 let me = null, isAdmin = false;
 let members = {}, meetings = {}, curMeetId = null, curAtt = {};
 let attUnsubscribe = null;
+let listenersStarted = false;
+const REDIRECT_FLAG = 'attendanceGoogleRedirectPending';
+
+function setRedirectPending(value) {
+  try {
+    if (value) localStorage.setItem(REDIRECT_FLAG, '1');
+    else localStorage.removeItem(REDIRECT_FLAG);
+  } catch(e) {}
+}
+
+function hasRedirectPending() {
+  try { return localStorage.getItem(REDIRECT_FLAG) === '1'; }
+  catch(e) { return false; }
+}
+
+function shouldTryPopupFirst(isIOS, isSafari) {
+  return (isIOS || isSafari)
+    && location.protocol !== 'file:'
+    && !!location.hostname
+    && location.hostname !== firebaseConfig.authDomain;
+}
 
 // ── AUTH ─────────────────────────────────────────────
 function showLoginErr(msg) {
   const el = document.getElementById('login-err');
+  if (!el) return;
   el.style.display = 'block';
   el.textContent = msg;
 }
 
 // Handle redirect result first (for iOS/mobile after redirect)
-getRedirectResult(auth).then(result => {
+const redirectResultReady = getRedirectResult(auth).then(async result => {
   if (result?.user) {
-    // onAuthStateChanged will handle the rest
+    await handleSignedInUser(result.user);
   }
+  return result;
 }).catch(e => {
   console.error('redirect result:', e);
+  setRedirectPending(false);
   showLoginErr(e.code || e.message || 'Помилка входу');
+  return null;
 });
 
 document.getElementById('btn-login').onclick = async () => {
@@ -630,16 +664,34 @@ document.getElementById('btn-login').onclick = async () => {
   document.getElementById('login-loading').style.display = 'none';
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if ((isIOS || isSafari) && location.protocol === 'file:') {
+    showLoginErr('На iPhone відкрийте опубліковане посилання сайту (https://...), не файл index.html. Google-вхід не працює з локального файлу.');
+    return;
+  }
   try {
+    if (shouldTryPopupFirst(isIOS, isSafari)) {
+      try {
+        const popupResult = await signInWithPopup(auth, provider);
+        if (popupResult?.user) await handleSignedInUser(popupResult.user);
+        return;
+      } catch(popupError) {
+        console.warn('popup sign-in failed, falling back to redirect:', popupError);
+        if (popupError.code === 'auth/popup-closed-by-user') throw popupError;
+      }
+    }
+
     if (isIOS || isSafari) {
       document.getElementById('login-loading').style.display = 'block';
       document.getElementById('btn-login').style.display = 'none';
+      setRedirectPending(true);
       await signInWithRedirect(auth, provider);
     } else {
-      await signInWithPopup(auth, provider);
+      const popupResult = await signInWithPopup(auth, provider);
+      if (popupResult?.user) await handleSignedInUser(popupResult.user);
     }
   } catch(e) {
     console.error(e);
+    setRedirectPending(false);
     document.getElementById('login-loading').style.display = 'none';
     document.getElementById('btn-login').style.display = 'flex';
     showLoginErr(e.code || e.message || 'Помилка входу');
@@ -649,9 +701,8 @@ document.getElementById('btn-login').onclick = async () => {
 document.getElementById('btn-out').onclick = () => signOut(auth);
 document.getElementById('btn-denied-out').onclick = () => signOut(auth);
 
-onAuthStateChanged(auth, async user => {
-  if (!user) { show('login'); return; }
-
+async function handleSignedInUser(user) {
+  setRedirectPending(false);
   const eKey = eToKey(user.email);
   const snap = await get(ref(db, `allowedEmails/${eKey}`));
 
@@ -670,10 +721,35 @@ onAuthStateChanged(auth, async user => {
   me = user;
   document.getElementById('u-photo').src = user.photoURL || '';
   document.getElementById('u-name').textContent = user.displayName?.split(' ')[0] || '';
-  if (isAdmin) document.getElementById('adm-tab').style.display = 'block';
+  document.getElementById('adm-tab').style.display = isAdmin ? 'block' : 'none';
 
   show('app');
-  initListeners();
+  if (!listenersStarted) {
+    initListeners();
+    listenersStarted = true;
+  }
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    const redirectResult = await redirectResultReady;
+    if (redirectResult?.user) return;
+
+    me = null;
+    isAdmin = false;
+    document.getElementById('adm-tab').style.display = 'none';
+    document.getElementById('btn-login').style.display = 'flex';
+    document.getElementById('login-loading').style.display = 'none';
+    show('login');
+
+    if (hasRedirectPending()) {
+      setRedirectPending(false);
+      showLoginErr('Google повернув назад, але Safari не зберіг сесію. Відкрийте сайт через домен Firebase Hosting .firebaseapp.com або змініть authDomain на домен, де відкритий сайт.');
+    }
+    return;
+  }
+
+  await handleSignedInUser(user);
 });
 
 // ── DATA LISTENERS ────────────────────────────────────
