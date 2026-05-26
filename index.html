@@ -487,7 +487,10 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
         <div class="card" style="padding:24px">
           <div class="sec-head" style="font-size:13px">👥 Члени</div>
           <div id="adm-members"></div>
-          <button class="btn-prim" style="width:100%;margin-top:16px" id="btn-add-mem">+ Додати члена</button>
+          <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn-prim" style="flex:1" id="btn-add-mem">+ Один</button>
+          <button class="btn-prim" style="flex:1;background:var(--gold);color:#111" id="btn-bulk-mem">≡ Списком</button>
+        </div>
         </div>
         <div class="card" style="padding:24px">
           <div class="sec-head" style="font-size:13px">🔑 Доступ (Gmail)</div>
@@ -516,6 +519,26 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
   </div>
 </div>
 
+
+<!-- MODAL: BULK IMPORT -->
+<div class="modal-bg" id="m-bulk">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title">📋 Додати списком</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Кожен рядок — один учасник.<br>
+      Формат: <b style="color:var(--text)">Ім'я Прізвище, Посада</b><br>
+      Якщо посада не вказана — буде "Член самоврядування"
+    </div>
+    <div class="f-group">
+      <label class="f-lbl">Список учасників</label>
+      <textarea class="f-inp" id="m-bulk-text" rows="12" placeholder="Маркіян Іванців, Міністр інформації&#10;Ростик Дюк, Міністр спорту&#10;Ярина Чопик&#10;Катя"></textarea>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-bulk-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-bulk-save">Імпортувати</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL: НОВИЙ ЧЛЕН -->
 <div class="modal-bg" id="m-mem">
   <div class="modal">
@@ -866,6 +889,30 @@ document.getElementById('m-meet-save').onclick = async () => {
   await set(push(ref(db,'meetings')), { title, date, by: me.email });
   document.getElementById('m-meet').classList.remove('open');
   toast('Засідання створено');
+};
+
+
+document.getElementById('btn-bulk-mem').onclick = () => {
+  document.getElementById('m-bulk-text').value = '';
+  document.getElementById('m-bulk').classList.add('open');
+};
+document.getElementById('m-bulk-cancel').onclick = () => document.getElementById('m-bulk').classList.remove('open');
+document.getElementById('m-bulk-save').onclick = async () => {
+  const lines = document.getElementById('m-bulk-text').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const btn = document.getElementById('m-bulk-save');
+  btn.textContent = 'Імпортую...';
+  btn.disabled = true;
+  for (const line of lines) {
+    const comma = line.indexOf(',');
+    const name = comma > -1 ? line.slice(0, comma).trim() : line.trim();
+    const role = comma > -1 ? line.slice(comma+1).trim() : 'Член самоврядування';
+    if (name) await set(push(ref(db,'members')), { name, role });
+  }
+  btn.textContent = 'Імпортувати';
+  btn.disabled = false;
+  document.getElementById('m-bulk').classList.remove('open');
+  toast(`Додано ${lines.length} учасників`);
 };
 
 document.getElementById('btn-add-mem').onclick = () => {
