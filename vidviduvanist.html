@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Відвідуваність · Самоврядування</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090f;
+  --bg2: #0b0e1a;
+  --glass: rgba(255,255,255,0.035);
+  --glass-h: rgba(255,255,255,0.065);
+  --border: rgba(255,255,255,0.07);
+  --border-b: rgba(255,255,255,0.14);
+  --blue: #2563EB;
+  --blue-dim: rgba(37,99,235,0.18);
+  --blue-glow: rgba(37,99,235,0.35);
+  --gold: #F0A500;
+  --gold-dim: rgba(240,165,0,0.15);
+  --text: #DDE3F0;
+  --muted: #6B7694;
+  --dim: #353D55;
+  --ok: #10B981;
+  --ok-dim: rgba(16,185,129,0.12);
+  --err: #EF4444;
+  --err-dim: rgba(239,68,68,0.12);
+  --warn: #F59E0B;
+  --warn-dim: rgba(245,158,11,0.12);
+  --r: 10px;
+  --r-s: 7px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Geologica',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 0%,rgba(37,99,235,0.1) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 85% 100%,rgba(240,165,0,0.07) 0%,transparent 60%);
+}
+
+/* ── SCREENS ── */
+#s-login,#s-denied{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:24px;
+}
+#s-app{display:none}
+
+.login-card{
+  background:var(--glass);
+  border:1px solid var(--border-b);
+  border-radius:20px;
+  padding:52px 44px;
+  text-align:center;
+  max-width:400px;width:100%;
+  backdrop-filter:blur(24px);
+  box-shadow:0 32px 80px rgba(0,0,0,0.5);
+}
+.lc-badge{
+  display:inline-block;
+  font-family:'Unbounded',sans-serif;
+  font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);border:1px solid rgba(240,165,0,0.3);
+  border-radius:100px;padding:5px 14px;margin-bottom:32px;
+}
+.lc-title{
+  font-family:'Unbounded',sans-serif;font-weight:700;font-size:22px;
+  margin-bottom:10px;
+}
+.lc-sub{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:40px}
+
+.btn-google{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  width:100%;padding:14px 24px;
+  background:#fff;color:#111;
+  border:none;border-radius:var(--r);
+  font-family:'Geologica',sans-serif;font-weight:600;font-size:15px;
+  cursor:pointer;transition:all .2s;
+}
+.btn-google:hover{background:#efefef;transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,0.35)}
+.btn-google svg{width:20px;height:20px;flex-shrink:0}
+.btn-ghost{
+  width:100%;margin-top:20px;padding:12px;
+  background:none;border:1px solid var(--border-b);border-radius:var(--r);
+  color:var(--muted);font-family:'Geologica',sans-serif;font-size:14px;cursor:pointer;
+  transition:all .2s;
+}
+.btn-ghost:hover{border-color:var(--err);color:var(--err)}
+
+/* ── HEADER ── */
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,9,15,0.8);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.hdr-in{
+  max-width:1440px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  height:62px;padding:0 24px;gap:16px;
+}
+.hdr-logo{
+  font-family:'Unbounded',sans-serif;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
+  white-space:nowrap;flex-shrink:0;
+}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.user-pill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:100px;padding:5px 14px 5px 5px;
+}
+.user-pill img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+.user-pill span{font-size:13px;color:var(--muted)}
+.btn-out{
+  padding:7px 14px;background:none;
+  border:1px solid var(--border);border-radius:var(--r-s);
+  color:var(--muted);font-family:'Geologica',sans-serif;font-size:13px;cursor:pointer;
+  transition:all .15s;
+}
+.btn-out:hover{border-color:var(--err);color:var(--err)}
+
+/* ── MAIN ── */
+.main{max-width:1440px;margin:0 auto;padding:32px 24px}
+
+/* ── TABS ── */
+.tabs{
+  display:flex;gap:3px;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);padding:4px;
+  width:fit-content;margin-bottom:28px;
+}
+.tab{
+  padding:8px 22px;border-radius:var(--r-s);
+  font-family:'Unbounded',sans-serif;font-size:11px;letter-spacing:.04em;
+  cursor:pointer;transition:all .15s;color:var(--muted);border:none;background:none;
+}
+.tab.on{background:var(--blue);color:#fff}
+.tab-pane{display:none}
+.tab-pane.on{display:block}
+
+/* ── MEETING BAR ── */
+.meet-bar{display:flex;align-items:center;gap:10px;margin-bottom:28px;flex-wrap:wrap}
+.meet-lbl{
+  font-family:'Unbounded',sans-serif;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex-shrink:0;
+}
+.sel{
+  flex:1;min-width:200px;
+  background:var(--glass);border:1px solid var(--border-b);border-radius:var(--r);
+  color:var(--text);font-family:'Geologica',sans-serif;font-size:14px;
+  padding:10px 36px 10px 14px;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236B7694' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;
+}
+.sel option{background:#0b0e1a}
+.btn-prim{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  background:var(--blue);color:#fff;border:none;border-radius:var(--r);
+  padding:10px 20px;font-family:'Geologica',sans-serif;font-weight:600;font-size:14px;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.btn-prim:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 8px 24px var(--blue-glow)}
+
+/* ── STATS ROW ── */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:14px;margin-bottom:28px;
+}
+.stat-c{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px 16px;text-align:center;
+}
+.stat-v{
+  font-family:'Unbounded',sans-serif;font-weight:700;font-size:28px;
+  line-height:1;margin-bottom:7px;
+}
+.stat-l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* ── CARD WRAP ── */
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;
+}
+.card-title{font-family:'Unbounded',sans-serif;font-size:13px;letter-spacing:.03em}
+.card-date{font-size:13px;color:var(--muted)}
+
+/* ── TABLE ── */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:680px}
+thead th{
+  background:rgba(255,255,255,0.025);
+  padding:11px 14px;text-align:left;
+  font-family:'Unbounded',sans-serif;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--glass-h)}
+tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
+.m-name{font-weight:600;color:var(--text);margin-bottom:2px;font-size:14px}
+.m-role{font-size:12px;color:var(--muted)}
+
+/* ── CUSTOM DROPDOWN ── */
+.dd{position:relative;display:inline-block}
+.dd-trig{
+  display:inline-flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 12px;min-width:136px;
+  border:1px solid var(--border-b);border-radius:var(--r-s);
+  background:rgba(255,255,255,0.03);
+  cursor:pointer;font-family:'Geologica',sans-serif;font-size:13px;font-weight:600;
+  transition:all .12s;user-select:none;
+}
+.dd-trig:hover{border-color:rgba(255,255,255,0.22);background:var(--glass-h)}
+.dd-trig.is-present{border-color:rgba(16,185,129,.35);background:var(--ok-dim);color:var(--ok)}
+.dd-trig.is-absent{border-color:rgba(239,68,68,.35);background:var(--err-dim);color:var(--err)}
+.dd-trig.is-valid{border-color:rgba(16,185,129,.35);background:var(--ok-dim);color:var(--ok)}
+.dd-trig.is-invalid{border-color:rgba(239,68,68,.35);background:var(--err-dim);color:var(--err)}
+.dd-caret{font-size:9px;opacity:.45;transition:transform .12s;flex-shrink:0}
+.dd-trig.open .dd-caret{transform:rotate(180deg)}
+
+.dd-menu{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:300;
+  background:#101422;border:1px solid var(--border-b);border-radius:var(--r);
+  overflow:hidden;min-width:164px;
+  box-shadow:0 20px 56px rgba(0,0,0,0.55);
+  animation:dropIn .14s ease;
+}
+@keyframes dropIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.dd-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 16px;cursor:pointer;
+  font-size:13px;font-weight:600;transition:background .1s;
+  border-bottom:1px solid var(--border);
+}
+.dd-opt:last-child{border-bottom:none}
+.dd-opt:hover{background:var(--glass-h)}
+.dd-opt-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+
+/* ── REASON INPUT ── */
+.r-inp{
+  background:rgba(255,255,255,0.035);border:1px solid var(--border);
+  border-radius:var(--r-s);color:var(--text);
+  font-family:'Geologica',sans-serif;font-size:13px;
+  padding:7px 11px;width:100%;min-width:130px;transition:border .12s;
+}
+.r-inp:focus{outline:none;border-color:var(--blue)}
+.r-inp::placeholder{color:var(--dim)}
+.r-inp:disabled{opacity:.28;cursor:not-allowed}
+
+/* ── SUMMARY BAR ── */
+.s-bar-w{display:flex;align-items:center;gap:7px;min-width:110px}
+.s-bar-pct{
+  font-family:'Unbounded',sans-serif;font-weight:700;font-size:13px;
+  width:38px;text-align:right;flex-shrink:0;
+}
+.s-bar{flex:1;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden}
+.s-bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* ── BADGE ── */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;border-radius:100px;
+  padding:3px 10px;
+}
+.badge.ok{background:var(--ok-dim);color:var(--ok)}
+.badge.err{background:var(--err-dim);color:var(--err)}
+.badge.warn{background:var(--warn-dim);color:var(--warn)}
+
+/* ── MODAL ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.72);z-index:400;
+  backdrop-filter:blur(5px);
+  align-items:center;justify-content:center;padding:24px;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:#0b0e1a;border:1px solid var(--border-b);
+  border-radius:18px;padding:36px;width:100%;max-width:460px;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6);
+}
+.modal-title{font-family:'Unbounded',sans-serif;font-size:17px;margin-bottom:26px}
+.f-group{margin-bottom:18px}
+.f-lbl{
+  display:block;font-family:'Unbounded',sans-serif;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;
+}
+.f-inp{
+  width:100%;background:var(--glass);border:1px solid var(--border-b);
+  border-radius:var(--r);color:var(--text);
+  font-family:'Geologica',sans-serif;font-size:15px;padding:12px 14px;
+  transition:border .15s;
+}
+.f-inp:focus{outline:none;border-color:var(--blue)}
+.modal-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:26px}
+.btn-sec{
+  padding:10px 20px;background:var(--glass);
+  border:1px solid var(--border-b);border-radius:var(--r);
+  color:var(--muted);font-family:'Geologica',sans-serif;font-weight:600;font-size:14px;
+  cursor:pointer;transition:all .15s;
+}
+.btn-sec:hover{color:var(--text)}
+
+/* ── ADMIN ITEMS ── */
+.a-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--border);gap:8px;
+}
+.a-item:last-child{border-bottom:none}
+.a-item-name{font-weight:600;font-size:14px}
+.a-item-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.btn-del{
+  background:none;border:1px solid rgba(239,68,68,.25);
+  border-radius:6px;color:var(--err);
+  padding:4px 10px;cursor:pointer;font-size:12px;flex-shrink:0;
+  transition:all .15s;
+}
+.btn-del:hover{background:var(--err-dim)}
+
+/* ── EMPTY STATE ── */
+.empty{padding:64px 24px;text-align:center;color:var(--muted)}
+.empty-ico{font-size:44px;margin-bottom:16px}
+.empty-t{font-family:'Unbounded',sans-serif;font-size:16px;color:var(--text);margin-bottom:8px}
+.empty-s{font-size:13px;line-height:1.7}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:600;
+  background:#111622;border:1px solid var(--border-b);
+  border-radius:var(--r);padding:13px 20px;
+  font-size:13px;font-weight:600;
+  box-shadow:0 12px 40px rgba(0,0,0,0.5);
+  animation:slideIn .2s ease;max-width:280px;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+.toast.ok{border-color:rgba(16,185,129,.35);color:var(--ok)}
+.toast.err{border-color:rgba(239,68,68,.35);color:var(--err)}
+
+/* ── SECTION HEAD ── */
+.sec-head{
+  display:flex;align-items:center;gap:14px;
+  font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;
+  margin-bottom:18px;
+}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .hdr-logo{display:none}
+  .user-pill span{display:none}
+  .main{padding:20px 14px}
+  .login-card{padding:36px 22px}
+  .tabs{width:100%}
+  .tab{flex:1;text-align:center;padding:8px 10px}
+  .modal{padding:26px 18px}
+  .meet-bar{flex-direction:column;align-items:stretch}
+  .sel{min-width:unset}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="s-login">
+  <div class="login-card">
+    <div class="lc-badge">Науковий ліцей ім. Б. Лепкого</div>
+    <div class="lc-title">Відвідуваність</div>
+    <div class="lc-sub">Система обліку присутності<br>членів учнівського самоврядування</div>
+    <button class="btn-google" id="btn-login">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Увійти через Google
+    </button>
+  </div>
+</div>
+
+<!-- DENIED -->
+<div id="s-denied" style="display:none">
+  <div class="login-card">
+    <div style="font-size:44px;margin-bottom:20px">🔒</div>
+    <div class="lc-title" style="margin-bottom:10px">Доступ закрито</div>
+    <div class="lc-sub">Ваш акаунт не має доступу.<br>Зверніться до адміністратора.</div>
+    <button class="btn-ghost" id="btn-denied-out">Вийти</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="s-app">
+  <header class="hdr">
+    <div class="hdr-in">
+      <div class="hdr-logo">Самоврядування ліцею</div>
+      <div class="hdr-right">
+        <div class="user-pill">
+          <img id="u-photo" src="" alt="">
+          <span id="u-name"></span>
+        </div>
+        <button class="btn-out" id="btn-out">Вийти</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="tabs">
+      <button class="tab on" data-t="meet">📋 Засідання</button>
+      <button class="tab" data-t="sum">📊 Зведення</button>
+      <button class="tab" data-t="adm" id="adm-tab" style="display:none">⚙️ Адмін</button>
+    </div>
+
+    <!-- TAB: ЗАСІДАННЯ -->
+    <div id="tp-meet" class="tab-pane on">
+      <div class="meet-bar">
+        <span class="meet-lbl">Засідання</span>
+        <select class="sel" id="meet-sel"><option value="">— Оберіть засідання —</option></select>
+        <button class="btn-prim" id="btn-new-meet">+ Нове</button>
+      </div>
+
+      <div class="stats-grid" id="meet-stats" style="display:none">
+        <div class="stat-c"><div class="stat-v" id="sv-total" style="color:var(--text)">0</div><div class="stat-l">Всього членів</div></div>
+        <div class="stat-c"><div class="stat-v" id="sv-pres" style="color:var(--ok)">0</div><div class="stat-l">Присутні</div></div>
+        <div class="stat-c"><div class="stat-v" id="sv-abs" style="color:var(--err)">0</div><div class="stat-l">Відсутні</div></div>
+        <div class="stat-c"><div class="stat-v" id="sv-valid" style="color:var(--warn)">0</div><div class="stat-l">Поважна причина</div></div>
+        <div class="stat-c"><div class="stat-v" id="sv-pct" style="color:var(--blue)">—</div><div class="stat-l">Відвідуваність</div></div>
+      </div>
+
+      <div class="card" id="att-card">
+        <div id="att-empty" class="empty">
+          <div class="empty-ico">📅</div>
+          <div class="empty-t">Оберіть засідання</div>
+          <div class="empty-s">Виберіть зі списку або створіть нове</div>
+        </div>
+        <div id="att-table-wrap" style="display:none">
+          <div class="card-head">
+            <div class="card-title" id="att-title"></div>
+            <div class="card-date" id="att-date"></div>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th>
+                  <th>Учасник</th>
+                  <th style="width:150px">Присутність</th>
+                  <th>Причина відсутності</th>
+                  <th style="width:154px">Тип причини</th>
+                </tr>
+              </thead>
+              <tbody id="att-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ЗВЕДЕННЯ -->
+    <div id="tp-sum" class="tab-pane">
+      <div class="sec-head">Загальна статистика</div>
+      <div class="card">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Учасник</th>
+                <th>Посада</th>
+                <th style="text-align:center">Засідань</th>
+                <th style="text-align:center">Присутній</th>
+                <th style="text-align:center">Відсутній</th>
+                <th style="text-align:center">Поважних</th>
+                <th style="text-align:center">Без причини</th>
+                <th style="min-width:150px">Відвідуваність</th>
+              </tr>
+            </thead>
+            <tbody id="sum-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: АДМІН -->
+    <div id="tp-adm" class="tab-pane">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+        <div class="card" style="padding:24px">
+          <div class="sec-head" style="font-size:13px">👥 Члени</div>
+          <div id="adm-members"></div>
+          <button class="btn-prim" style="width:100%;margin-top:16px" id="btn-add-mem">+ Додати члена</button>
+        </div>
+        <div class="card" style="padding:24px">
+          <div class="sec-head" style="font-size:13px">🔑 Доступ (Gmail)</div>
+          <div id="adm-emails"></div>
+          <button class="btn-prim" style="width:100%;margin-top:16px" id="btn-add-email">+ Додати email</button>
+        </div>
+        <div class="card" style="padding:24px">
+          <div class="sec-head" style="font-size:13px">📅 Засідання</div>
+          <div id="adm-meetings"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL: НОВЕ ЗАСІДАННЯ -->
+<div class="modal-bg" id="m-meet">
+  <div class="modal">
+    <div class="modal-title">📅 Нове засідання</div>
+    <div class="f-group"><label class="f-lbl">Назва</label><input class="f-inp" id="m-meet-name" type="text" placeholder="Засідання №1"></div>
+    <div class="f-group"><label class="f-lbl">Дата</label><input class="f-inp" id="m-meet-date" type="date"></div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-meet-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-meet-save">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: НОВИЙ ЧЛЕН -->
+<div class="modal-bg" id="m-mem">
+  <div class="modal">
+    <div class="modal-title">👤 Новий член</div>
+    <div class="f-group"><label class="f-lbl">Ім'я та прізвище</label><input class="f-inp" id="m-mem-name" type="text" placeholder="Іваненко Іван"></div>
+    <div class="f-group"><label class="f-lbl">Посада</label><input class="f-inp" id="m-mem-role" type="text" placeholder="Міністр освіти"></div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-mem-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-mem-save">Додати</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: НОВИЙ EMAIL -->
+<div class="modal-bg" id="m-email">
+  <div class="modal">
+    <div class="modal-title">✉️ Додати доступ</div>
+    <div class="f-group"><label class="f-lbl">Gmail адреса</label><input class="f-inp" id="m-email-val" type="email" placeholder="name@gmail.com"></div>
+    <div class="f-group">
+      <label class="f-lbl">Роль</label>
+      <select class="f-inp sel" id="m-email-role" style="background-image:none">
+        <option value="user">Користувач</option>
+        <option value="admin">Адміністратор</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-email-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-email-save">Додати</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── ВСТАВТЕ ВАШ FIREBASE CONFIG ──────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAzndcaIyWD71-W_GJTrBi-Lq0vlpsrvsE",
+  authDomain: "tablicasamovraduvanna.firebaseapp.com",
+  databaseURL: "https://tablicasamovraduvanna-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tablicasamovraduvanna",
+  storageBucket: "tablicasamovraduvanna.firebasestorage.app",
+  messagingSenderId: "710429148693",
+  appId: "1:710429148693:web:41e5c8cdd84ebdb0d5301c"
+};
+// ────────────────────────────────────────────────────
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const provider = new GoogleAuthProvider();
+
+let me = null, isAdmin = false;
+let members = {}, meetings = {}, curMeetId = null, curAtt = {};
+let attUnsubscribe = null;
+
+// ── AUTH ─────────────────────────────────────────────
+document.getElementById('btn-login').onclick = () =>
+  signInWithPopup(auth, provider).catch(() => toast('Помилка входу', 'err'));
+
+document.getElementById('btn-out').onclick = () => signOut(auth);
+document.getElementById('btn-denied-out').onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { show('login'); return; }
+
+  const eKey = eToKey(user.email);
+  const snap = await get(ref(db, `allowedEmails/${eKey}`));
+
+  if (!snap.exists()) {
+    const anySnap = await get(ref(db, 'allowedEmails'));
+    if (!anySnap.exists()) {
+      await set(ref(db, `allowedEmails/${eKey}`), { role: 'admin' });
+      isAdmin = true;
+    } else {
+      show('denied'); return;
+    }
+  } else {
+    isAdmin = snap.val()?.role === 'admin';
+  }
+
+  me = user;
+  document.getElementById('u-photo').src = user.photoURL || '';
+  document.getElementById('u-name').textContent = user.displayName?.split(' ')[0] || '';
+  if (isAdmin) document.getElementById('adm-tab').style.display = 'block';
+
+  show('app');
+  initListeners();
+});
+
+// ── DATA LISTENERS ────────────────────────────────────
+function initListeners() {
+  onValue(ref(db, 'members'), s => {
+    members = s.val() || {};
+    renderAttTable();
+    renderSummary();
+    renderAdmMembers();
+  });
+  onValue(ref(db, 'meetings'), s => {
+    meetings = s.val() || {};
+    renderMeetSel();
+    renderAdmMeetings();
+  });
+  onValue(ref(db, 'allowedEmails'), s => renderAdmEmails(s.val() || {}));
+}
+
+// ── MEETING SELECT ────────────────────────────────────
+function renderMeetSel() {
+  const sel = document.getElementById('meet-sel');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Оберіть засідання —</option>';
+  Object.entries(meetings)
+    .sort((a,b) => b[1].date.localeCompare(a[1].date))
+    .forEach(([id,m]) => {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = `${m.title}  ·  ${fmtDate(m.date)}`;
+      sel.appendChild(o);
+    });
+  if (prev && meetings[prev]) sel.value = prev;
+}
+
+document.getElementById('meet-sel').onchange = e => {
+  curMeetId = e.target.value || null;
+  if (attUnsubscribe) { attUnsubscribe(); attUnsubscribe = null; }
+  if (!curMeetId) { hideTable(); return; }
+  attUnsubscribe = onValue(ref(db, `attendance/${curMeetId}`), s => {
+    curAtt = s.val() || {};
+    renderAttTable();
+  });
+};
+
+// ── ATTENDANCE TABLE ──────────────────────────────────
+function renderAttTable() {
+  if (!curMeetId || !meetings[curMeetId]) { hideTable(); return; }
+  const m = meetings[curMeetId];
+  document.getElementById('att-empty').style.display = 'none';
+  document.getElementById('att-table-wrap').style.display = 'block';
+  document.getElementById('meet-stats').style.display = 'grid';
+  document.getElementById('att-title').textContent = m.title;
+  document.getElementById('att-date').textContent = fmtDate(m.date);
+
+  const mList = Object.entries(members);
+  let pres = 0, abs = 0, valid = 0;
+
+  const tbody = document.getElementById('att-body');
+  tbody.innerHTML = '';
+
+  mList.forEach(([id, mem], i) => {
+    const a = curAtt[id] || {};
+    if (a.present === true) pres++;
+    else if (a.present === false) { abs++; if (a.validReason === true) valid++; }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><div class="m-name">${mem.name}</div><div class="m-role">${mem.role}</div></td>
+      <td>${ddPresHTML(id, a.present)}</td>
+      <td><input class="r-inp" id="ri-${id}"
+        placeholder="${a.present === false ? 'Вкажіть причину...' : '—'}"
+        value="${a.reason || ''}"
+        ${a.present !== false ? 'disabled' : ''}></td>
+      <td>${ddReasonHTML(id, a.validReason, a.present)}</td>`;
+    tbody.appendChild(tr);
+    tr.querySelector(`#ri-${id}`).onchange = e => saveField(id,'reason', e.target.value || null);
+  });
+
+  tbody.querySelectorAll('[data-dd]').forEach(el => el.onclick = e => { e.stopPropagation(); toggleDD(el); });
+  tbody.querySelectorAll('[data-opt]').forEach(el => el.onclick = e => { e.stopPropagation(); pickOpt(el); });
+
+  const total = mList.length;
+  document.getElementById('sv-total').textContent = total;
+  document.getElementById('sv-pres').textContent = pres;
+  document.getElementById('sv-abs').textContent = abs;
+  document.getElementById('sv-valid').textContent = valid;
+  document.getElementById('sv-pct').textContent = total ? Math.round(pres/total*100)+'%' : '—';
+}
+
+function ddPresHTML(id, present) {
+  let cls = '', txt = '— Не вказано';
+  if (present === true)  { cls = 'is-present'; txt = '✓ Присутній'; }
+  if (present === false) { cls = 'is-absent';  txt = '✗ Відсутній'; }
+  return `<div class="dd"><div class="dd-trig ${cls}" data-dd="p-${id}" data-mid="${id}" data-kind="pres">
+    <span>${txt}</span><span class="dd-caret">▾</span></div>
+    <div class="dd-menu" id="ddm-p-${id}" style="display:none">
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="pres" data-val="true"><span class="dd-opt-icon">✓</span>Присутній</div>
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="pres" data-val="false"><span class="dd-opt-icon">✗</span>Відсутній</div>
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="pres" data-val="null"><span class="dd-opt-icon">—</span>Не вказано</div>
+    </div></div>`;
+}
+
+function ddReasonHTML(id, validReason, present) {
+  const dis = present !== false;
+  let cls = '', txt = '— Не вказано';
+  if (validReason === true)  { cls = 'is-valid';   txt = '✅ Поважна'; }
+  if (validReason === false) { cls = 'is-invalid'; txt = '❌ Не поважна'; }
+  return `<div class="dd" ${dis ? 'style="opacity:.28;pointer-events:none"' : ''}>
+    <div class="dd-trig ${cls}" data-dd="r-${id}" data-mid="${id}" data-kind="reason">
+      <span>${txt}</span><span class="dd-caret">▾</span></div>
+    <div class="dd-menu" id="ddm-r-${id}" style="display:none">
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="reason" data-val="true"><span class="dd-opt-icon">✅</span>Поважна</div>
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="reason" data-val="false"><span class="dd-opt-icon">❌</span>Не поважна</div>
+      <div class="dd-opt" data-opt data-mid="${id}" data-kind="reason" data-val="null"><span class="dd-opt-icon">—</span>Не вказано</div>
+    </div></div>`;
+}
+
+function toggleDD(trig) {
+  const id = trig.dataset.dd;
+  const menu = document.getElementById(`ddm-${id}`);
+  const wasOpen = menu.style.display !== 'none';
+  closeAllDD();
+  if (!wasOpen) {
+    menu.style.display = 'block';
+    trig.classList.add('open');
+  }
+}
+
+function closeAllDD() {
+  document.querySelectorAll('.dd-menu').forEach(m => m.style.display = 'none');
+  document.querySelectorAll('.dd-trig').forEach(t => t.classList.remove('open'));
+}
+document.addEventListener('click', closeAllDD);
+
+async function pickOpt(el) {
+  const { mid, kind, val } = el.dataset;
+  closeAllDD();
+  const parsed = val === 'true' ? true : val === 'false' ? false : null;
+  if (kind === 'pres') {
+    await saveField(mid, 'present', parsed);
+    if (parsed !== false) {
+      await saveField(mid, 'validReason', null);
+      await saveField(mid, 'reason', null);
+    }
+  } else {
+    await saveField(mid, 'validReason', parsed);
+  }
+}
+
+async function saveField(memberId, field, value) {
+  if (!curMeetId) return;
+  await set(ref(db, `attendance/${curMeetId}/${memberId}/${field}`), value);
+}
+
+function hideTable() {
+  document.getElementById('att-empty').style.display = 'block';
+  document.getElementById('att-table-wrap').style.display = 'none';
+  document.getElementById('meet-stats').style.display = 'none';
+}
+
+// ── SUMMARY ───────────────────────────────────────────
+async function renderSummary() {
+  const snap = await get(ref(db, 'attendance'));
+  const allAtt = snap.val() || {};
+  const tbody = document.getElementById('sum-body');
+  tbody.innerHTML = '';
+
+  Object.entries(members).forEach(([mId, mem], i) => {
+    let total=0, pres=0, abs=0, valid=0, noR=0;
+    Object.values(allAtt).forEach(meeting => {
+      const a = (meeting||{})[mId];
+      if (!a || a.present == null) return;
+      total++;
+      if (a.present) pres++;
+      else { abs++; if (a.validReason === true) valid++; else if (a.validReason === false) noR++; }
+    });
+    const pct = total ? Math.round(pres/total*100) : 0;
+    const col = pct >= 75 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : total ? 'var(--err)' : 'var(--muted)';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><div class="m-name">${mem.name}</div></td>
+      <td style="font-size:13px;color:var(--muted)">${mem.role}</td>
+      <td style="text-align:center;font-family:'Unbounded',sans-serif;font-weight:700">${total}</td>
+      <td style="text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;color:var(--ok)">${pres}</td>
+      <td style="text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;color:var(--err)">${abs}</td>
+      <td style="text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;color:var(--warn)">${valid}</td>
+      <td style="text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;color:var(--err)">${noR}</td>
+      <td><div class="s-bar-w">
+        <div class="s-bar-pct" style="color:${col}">${total ? pct+'%' : '—'}</div>
+        <div class="s-bar"><div class="s-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── ADMIN ─────────────────────────────────────────────
+function renderAdmMembers() {
+  const el = document.getElementById('adm-members');
+  if (!el) return;
+  el.innerHTML = Object.entries(members).map(([id,m]) => `
+    <div class="a-item">
+      <div><div class="a-item-name">${m.name}</div><div class="a-item-sub">${m.role}</div></div>
+      <button class="btn-del" onclick="window._delMem('${id}')">×</button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0">Список порожній</div>';
+}
+
+function renderAdmEmails(emails) {
+  const el = document.getElementById('adm-emails');
+  if (!el) return;
+  el.innerHTML = Object.entries(emails).map(([k,d]) => `
+    <div class="a-item">
+      <div><div class="a-item-name">${k.replace(/,/g,'.')}</div>
+        <div class="a-item-sub">${d.role==='admin' ? '👑 Адмін' : '👤 Користувач'}</div></div>
+      <button class="btn-del" onclick="window._delEmail('${k}')">×</button>
+    </div>`).join('');
+}
+
+function renderAdmMeetings() {
+  const el = document.getElementById('adm-meetings');
+  if (!el) return;
+  const sorted = Object.entries(meetings).sort((a,b) => b[1].date.localeCompare(a[1].date));
+  el.innerHTML = sorted.map(([id,m]) => `
+    <div class="a-item">
+      <div><div class="a-item-name">${m.title}</div><div class="a-item-sub">${fmtDate(m.date)}</div></div>
+      <button class="btn-del" onclick="window._delMeet('${id}')">×</button>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0">Немає засідань</div>';
+}
+
+window._delMem = async id => { if(!isAdmin) return; await remove(ref(db,`members/${id}`)); toast('Видалено'); };
+window._delEmail = async k => { if(!isAdmin) return; await remove(ref(db,`allowedEmails/${k}`)); toast('Email видалено'); };
+window._delMeet = async id => { if(!isAdmin) return; await remove(ref(db,`meetings/${id}`)); await remove(ref(db,`attendance/${id}`)); toast('Засідання видалено'); };
+
+// ── MODALS ────────────────────────────────────────────
+document.getElementById('btn-new-meet').onclick = () => {
+  document.getElementById('m-meet-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('m-meet-name').value = `Засідання №${Object.keys(meetings).length+1}`;
+  document.getElementById('m-meet').classList.add('open');
+};
+document.getElementById('m-meet-cancel').onclick = () => document.getElementById('m-meet').classList.remove('open');
+document.getElementById('m-meet-save').onclick = async () => {
+  const title = document.getElementById('m-meet-name').value.trim();
+  const date = document.getElementById('m-meet-date').value;
+  if (!title || !date) return;
+  await set(push(ref(db,'meetings')), { title, date, by: me.email });
+  document.getElementById('m-meet').classList.remove('open');
+  toast('Засідання створено');
+};
+
+document.getElementById('btn-add-mem').onclick = () => {
+  document.getElementById('m-mem-name').value = '';
+  document.getElementById('m-mem-role').value = '';
+  document.getElementById('m-mem').classList.add('open');
+};
+document.getElementById('m-mem-cancel').onclick = () => document.getElementById('m-mem').classList.remove('open');
+document.getElementById('m-mem-save').onclick = async () => {
+  const name = document.getElementById('m-mem-name').value.trim();
+  const role = document.getElementById('m-mem-role').value.trim();
+  if (!name || !role) return;
+  await set(push(ref(db,'members')), { name, role });
+  document.getElementById('m-mem').classList.remove('open');
+  toast('Члена додано');
+};
+
+document.getElementById('btn-add-email').onclick = () => {
+  document.getElementById('m-email-val').value = '';
+  document.getElementById('m-email').classList.add('open');
+};
+document.getElementById('m-email-cancel').onclick = () => document.getElementById('m-email').classList.remove('open');
+document.getElementById('m-email-save').onclick = async () => {
+  const email = document.getElementById('m-email-val').value.trim().toLowerCase();
+  const role = document.getElementById('m-email-role').value;
+  if (!email) return;
+  await set(ref(db,`allowedEmails/${eToKey(email)}`), { role });
+  document.getElementById('m-email').classList.remove('open');
+  toast('Доступ додано');
+};
+
+// ── TABS ──────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('on'));
+    tab.classList.add('on');
+    document.getElementById(`tp-${tab.dataset.t}`).classList.add('on');
+    if (tab.dataset.t === 'sum') renderSummary();
+  };
+});
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-bg').forEach(bg => bg.onclick = e => { if(e.target===bg) bg.classList.remove('open'); });
+
+// ── HELPERS ───────────────────────────────────────────
+function show(s) {
+  document.getElementById('s-login').style.display = 'none';
+  document.getElementById('s-denied').style.display = 'none';
+  document.getElementById('s-app').style.display = 'none';
+  if (s==='login') document.getElementById('s-login').style.display = 'flex';
+  if (s==='denied') document.getElementById('s-denied').style.display = 'flex';
+  if (s==='app') document.getElementById('s-app').style.display = 'block';
+}
+function eToKey(e) { return e.replace(/\./g,','); }
+function fmtDate(d) { if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}.${m}.${y}`; }
+function toast(msg, type='ok') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
