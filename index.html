@@ -550,18 +550,18 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── ВСТАВТЕ ВАШ FIREBASE CONFIG ──────────────────────
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.io",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAzndcaIyWD71-W_GJTrBi-Lq0vlpsrvsE",
+  authDomain: "tablicasamovraduvanna.firebaseapp.com",
+  databaseURL: "https://tablicasamovraduvanna-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tablicasamovraduvanna",
+  storageBucket: "tablicasamovraduvanna.firebasestorage.app",
+  messagingSenderId: "710429148693",
+  appId: "1:710429148693:web:41e5c8cdd84ebdb0d5301c"
 };
 // ────────────────────────────────────────────────────
 
@@ -575,8 +575,16 @@ let members = {}, meetings = {}, curMeetId = null, curAtt = {};
 let attUnsubscribe = null;
 
 // ── AUTH ─────────────────────────────────────────────
-document.getElementById('btn-login').onclick = () =>
-  signInWithPopup(auth, provider).catch(() => toast('Помилка входу', 'err'));
+document.getElementById('btn-login').onclick = () => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    signInWithRedirect(auth, provider).catch(e => { console.error(e); toast(e.code || 'Помилка входу', 'err'); });
+  } else {
+    signInWithPopup(auth, provider).catch(e => { console.error(e); toast(e.code || 'Помилка входу', 'err'); });
+  }
+};
+
+getRedirectResult(auth).catch(e => console.error('redirect result error:', e));
 
 document.getElementById('btn-out').onclick = () => signOut(auth);
 document.getElementById('btn-denied-out').onclick = () => signOut(auth);
@@ -685,9 +693,6 @@ function renderAttTable() {
     tr.querySelector(`#ri-${id}`).onchange = e => saveField(id,'reason', e.target.value || null);
   });
 
-  tbody.querySelectorAll('[data-dd]').forEach(el => el.onclick = e => { e.stopPropagation(); toggleDD(el); });
-  tbody.querySelectorAll('[data-opt]').forEach(el => el.onclick = e => { e.stopPropagation(); pickOpt(el); });
-
   const total = mList.length;
   document.getElementById('sv-total').textContent = total;
   document.getElementById('sv-pres').textContent = pres;
@@ -739,7 +744,14 @@ function closeAllDD() {
   document.querySelectorAll('.dd-menu').forEach(m => m.style.display = 'none');
   document.querySelectorAll('.dd-trig').forEach(t => t.classList.remove('open'));
 }
-document.addEventListener('click', closeAllDD);
+
+document.addEventListener('click', e => {
+  const opt = e.target.closest('[data-opt]');
+  if (opt) { pickOpt(opt); return; }
+  const trig = e.target.closest('[data-dd]');
+  if (trig) { toggleDD(trig); return; }
+  closeAllDD();
+});
 
 async function pickOpt(el) {
   const { mid, kind, val } = el.dataset;
