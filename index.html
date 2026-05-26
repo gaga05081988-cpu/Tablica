@@ -598,16 +598,42 @@ let members = {}, meetings = {}, curMeetId = null, curAtt = {};
 let attUnsubscribe = null;
 
 // ── AUTH ─────────────────────────────────────────────
-document.getElementById('btn-login').onclick = () => {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (isMobile) {
-    signInWithRedirect(auth, provider).catch(e => { console.error(e); toast(e.code || 'Помилка входу', 'err'); });
-  } else {
-    signInWithPopup(auth, provider).catch(e => { console.error(e); toast(e.code || 'Помилка входу', 'err'); });
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+// Handle redirect result first (for iOS/mobile after redirect)
+getRedirectResult(auth).then(result => {
+  if (result?.user) {
+    // onAuthStateChanged will handle the rest
+  }
+}).catch(e => {
+  console.error('redirect result:', e);
+  showLoginErr(e.code || e.message || 'Помилка входу');
+});
+
+document.getElementById('btn-login').onclick = async () => {
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('login-loading').style.display = 'none';
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  try {
+    if (isIOS || isSafari) {
+      document.getElementById('login-loading').style.display = 'block';
+      document.getElementById('btn-login').style.display = 'none';
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
+  } catch(e) {
+    console.error(e);
+    document.getElementById('login-loading').style.display = 'none';
+    document.getElementById('btn-login').style.display = 'flex';
+    showLoginErr(e.code || e.message || 'Помилка входу');
   }
 };
-
-getRedirectResult(auth).catch(e => console.error('redirect result error:', e));
 
 document.getElementById('btn-out').onclick = () => signOut(auth);
 document.getElementById('btn-denied-out').onclick = () => signOut(auth);
