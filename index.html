@@ -288,6 +288,74 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
 .badge.err{background:var(--err-dim);color:var(--err)}
 .badge.warn{background:var(--warn-dim);color:var(--warn)}
 
+/* ── BRANCHES ── */
+.branch-top{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;margin-bottom:18px;flex-wrap:wrap;
+}
+.branch-top .sec-head{margin-bottom:0;flex:1;min-width:220px}
+.branch-grid{
+  display:grid;grid-template-columns:minmax(260px,340px) 1fr;
+  gap:18px;align-items:start;
+}
+.branch-list{padding:8px}
+.branch-item{
+  width:100%;display:block;text-align:left;
+  background:none;border:1px solid transparent;border-radius:var(--r);
+  color:var(--text);padding:13px 14px;margin-bottom:6px;
+  font-family:'Geologica',sans-serif;cursor:pointer;transition:all .15s;
+}
+.branch-item:hover{background:var(--glass-h);border-color:var(--border)}
+.branch-item.on{background:var(--blue-dim);border-color:rgba(37,99,235,.45)}
+.branch-item-name{font-weight:700;font-size:14px;margin-bottom:4px}
+.branch-item-sub{font-size:12px;color:var(--muted);line-height:1.4}
+.branch-body{padding:22px}
+.branch-info{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;margin-bottom:22px;
+}
+.branch-info-box{
+  background:rgba(255,255,255,0.025);border:1px solid var(--border);
+  border-radius:var(--r);padding:15px;
+}
+.branch-label{
+  font-family:'Unbounded',sans-serif;font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;
+}
+.branch-value{font-size:14px;line-height:1.6}
+.member-chips{display:flex;flex-wrap:wrap;gap:7px}
+.member-chip{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:100px;padding:5px 10px;font-size:12px;color:var(--text);
+}
+.task-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:12px;flex-wrap:wrap;
+}
+.task-list{display:grid;gap:10px}
+.task-item{
+  border:1px solid var(--border);border-radius:var(--r);
+  background:rgba(255,255,255,0.025);padding:14px;
+}
+.task-item.done{opacity:.72}
+.task-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.task-title{font-weight:700;font-size:14px;line-height:1.45}
+.task-desc{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.55;white-space:pre-wrap}
+.task-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.task-pill{
+  border:1px solid var(--border);border-radius:100px;
+  padding:4px 9px;font-size:11px;color:var(--muted);
+}
+.task-pill.ok{border-color:rgba(16,185,129,.35);color:var(--ok);background:var(--ok-dim)}
+.task-pill.warn{border-color:rgba(245,158,11,.35);color:var(--warn);background:var(--warn-dim)}
+.task-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn-mini{
+  background:var(--glass);border:1px solid var(--border-b);border-radius:6px;
+  color:var(--muted);font-family:'Geologica',sans-serif;font-size:12px;
+  padding:5px 9px;cursor:pointer;transition:all .15s;
+}
+.btn-mini:hover{color:var(--text);border-color:rgba(255,255,255,.22)}
+
 /* ── MODAL ── */
 .modal-bg{
   display:none;position:fixed;inset:0;
@@ -379,6 +447,9 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
   .meet-bar{flex-direction:column;align-items:stretch}
   .sel{min-width:unset}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .branch-grid{grid-template-columns:1fr}
+  .branch-info{grid-template-columns:1fr}
+  .branch-body{padding:18px}
 }
 </style>
 </head>
@@ -428,6 +499,7 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
     <div class="tabs">
       <button class="tab on" data-t="meet">📋 Засідання</button>
       <button class="tab" data-t="sum">📊 Зведення</button>
+      <button class="tab" data-t="branch">🏛️ Міністерства</button>
       <button class="tab" data-t="adm" id="adm-tab" style="display:none">⚙️ Адмін</button>
     </div>
 
@@ -501,6 +573,59 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
       </div>
     </div>
 
+    <!-- TAB: МІНІСТЕРСТВА -->
+    <div id="tp-branch" class="tab-pane">
+      <div class="branch-top">
+        <div class="sec-head">Гілки самоврядування</div>
+        <button class="btn-prim admin-only" id="btn-add-branch" style="display:none">+ Міністерство</button>
+      </div>
+      <div class="branch-grid">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Міністерства</div>
+            <div class="card-date" id="branch-count">0</div>
+          </div>
+          <div class="branch-list" id="branch-list"></div>
+        </div>
+        <div class="card">
+          <div id="branch-empty" class="empty">
+            <div class="empty-ico">🏛️</div>
+            <div class="empty-t">Оберіть міністерство</div>
+            <div class="empty-s">Тут будуть керівники, члени та завдання</div>
+          </div>
+          <div id="branch-detail" style="display:none">
+            <div class="card-head">
+              <div>
+                <div class="card-title" id="branch-title"></div>
+                <div class="card-date" id="branch-task-count"></div>
+              </div>
+              <div class="task-actions admin-only" style="display:none">
+                <button class="btn-mini" id="btn-edit-branch">Редагувати</button>
+                <button class="btn-mini" id="btn-delete-branch">Видалити</button>
+              </div>
+            </div>
+            <div class="branch-body">
+              <div class="branch-info">
+                <div class="branch-info-box">
+                  <div class="branch-label">Керівник</div>
+                  <div class="branch-value" id="branch-leader"></div>
+                </div>
+                <div class="branch-info-box">
+                  <div class="branch-label">Члени</div>
+                  <div class="member-chips" id="branch-members"></div>
+                </div>
+              </div>
+              <div class="task-head">
+                <div class="branch-label" style="margin-bottom:0">Завдання</div>
+                <button class="btn-prim admin-only" id="btn-add-task" style="display:none">+ Завдання</button>
+              </div>
+              <div class="task-list" id="task-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB: АДМІН -->
     <div id="tp-adm" class="tab-pane">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
@@ -524,6 +649,52 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
       </div>
     </div>
   </main>
+</div>
+
+<!-- MODAL: МІНІСТЕРСТВО -->
+<div class="modal-bg" id="m-branch">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="m-branch-title">🏛️ Міністерство</div>
+    <input id="m-branch-id" type="hidden">
+    <div class="f-group"><label class="f-lbl">Назва</label><input class="f-inp" id="m-branch-name" type="text" placeholder="Освіти"></div>
+    <div class="f-group"><label class="f-lbl">Керівник</label><input class="f-inp" id="m-branch-leader" type="text" placeholder="Ім'я та прізвище"></div>
+    <div class="f-group">
+      <label class="f-lbl">Члени</label>
+      <textarea class="f-inp" id="m-branch-members" rows="5" placeholder="Кожен член з нового рядка або через кому"></textarea>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-branch-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-branch-save">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ЗАВДАННЯ -->
+<div class="modal-bg" id="m-task">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="m-task-title">✅ Завдання</div>
+    <input id="m-task-id" type="hidden">
+    <div class="f-group">
+      <label class="f-lbl">Міністерство</label>
+      <select class="f-inp sel" id="m-task-branch" style="background-image:none"></select>
+    </div>
+    <div class="f-group"><label class="f-lbl">Назва завдання</label><input class="f-inp" id="m-task-name" type="text" placeholder="Підготувати план роботи"></div>
+    <div class="f-group"><label class="f-lbl">Відповідальний</label><input class="f-inp" id="m-task-assignee" type="text" placeholder="Міністерство або конкретна людина"></div>
+    <div class="f-group"><label class="f-lbl">Опис</label><textarea class="f-inp" id="m-task-desc" rows="4" placeholder="Деталі завдання"></textarea></div>
+    <div class="f-group"><label class="f-lbl">Дедлайн</label><input class="f-inp" id="m-task-due" type="date"></div>
+    <div class="f-group">
+      <label class="f-lbl">Статус</label>
+      <select class="f-inp sel" id="m-task-status" style="background-image:none">
+        <option value="todo">Заплановано</option>
+        <option value="progress">В роботі</option>
+        <option value="done">Готово</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-sec" id="m-task-cancel">Скасувати</button>
+      <button class="btn-prim" id="m-task-save">Зберегти</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL: НОВЕ ЗАСІДАННЯ -->
@@ -615,9 +786,20 @@ const provider = new GoogleAuthProvider();
 
 let me = null, isAdmin = false;
 let members = {}, meetings = {}, curMeetId = null, curAtt = {};
+let branches = {}, branchTasks = {}, curBranchId = null;
 let attUnsubscribe = null;
 let listenersStarted = false;
 const REDIRECT_FLAG = 'attendanceGoogleRedirectPending';
+const DEFAULT_BRANCHES = [
+  { id:'education', name:'Освіти', leader:'Ярина Чопик', members:['Винницький Іван','Марта Харів','Марта Грицьків','Кушлик Матвій','Радзієвська Ангеліна'] },
+  { id:'finance', name:'Фінансів', leader:'Ростик Дюк', members:['Кухар Аня'] },
+  { id:'info', name:'Інформації', leader:'Яна Бунь', members:['Віка Грицай','Маркіян Іванців','Аня Лагуш','Андріана Макутська'] },
+  { id:'sport', name:'Спорту', leader:'Красінський Денис', members:[] },
+  { id:'hr', name:'HR', leader:'Богумила Сабріна, Катерина Яцуляк; Марич Аліна; Петрик Настя', members:[] },
+  { id:'tech', name:'Технічний', leader:'—', members:['Саша Ілляш','Ігор Герльовський'] },
+  { id:'advisor', name:'Радник голови', leader:'Мілана Костик', members:[] },
+  { id:'secretary', name:'Секретар', leader:'Марічка Томенюк', members:[] }
+];
 
 function setRedirectPending(value) {
   try {
@@ -722,8 +904,10 @@ async function handleSignedInUser(user) {
   document.getElementById('u-photo').src = user.photoURL || '';
   document.getElementById('u-name').textContent = user.displayName?.split(' ')[0] || '';
   document.getElementById('adm-tab').style.display = isAdmin ? 'block' : 'none';
+  updateAdminControls();
 
   show('app');
+  if (isAdmin) await ensureDefaultBranches();
   if (!listenersStarted) {
     initListeners();
     listenersStarted = true;
@@ -738,6 +922,7 @@ onAuthStateChanged(auth, async user => {
     me = null;
     isAdmin = false;
     document.getElementById('adm-tab').style.display = 'none';
+    updateAdminControls();
     document.getElementById('btn-login').style.display = 'flex';
     document.getElementById('login-loading').style.display = 'none';
     show('login');
@@ -766,6 +951,16 @@ function initListeners() {
     renderAdmMeetings();
   });
   onValue(ref(db, 'allowedEmails'), s => renderAdmEmails(s.val() || {}));
+  onValue(ref(db, 'branches'), s => {
+    branches = s.val() || {};
+    renderBranches();
+    renderBranchOptions();
+  });
+  onValue(ref(db, 'branchTasks'), s => {
+    branchTasks = s.val() || {};
+    renderBranches();
+    renderBranchDetail();
+  });
 }
 
 // ── MEETING SELECT ────────────────────────────────────
@@ -951,6 +1146,226 @@ async function renderSummary() {
   });
 }
 
+// ── BRANCHES ───────────────────────────────────────────
+async function ensureDefaultBranches() {
+  try {
+    const snap = await get(ref(db, 'branches'));
+    if (snap.exists()) return;
+    const seed = {};
+    DEFAULT_BRANCHES.forEach((b, i) => {
+      seed[b.id] = { name:b.name, leader:b.leader, members:b.members, order:i };
+    });
+    await set(ref(db, 'branches'), seed);
+  } catch(e) {
+    console.warn('default branches:', e);
+  }
+}
+
+function updateAdminControls() {
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+function branchEntries() {
+  return Object.entries(branches).sort((a,b) => {
+    const ao = Number.isFinite(a[1].order) ? a[1].order : 999999;
+    const bo = Number.isFinite(b[1].order) ? b[1].order : 999999;
+    return ao - bo || (a[1].name || '').localeCompare(b[1].name || '', 'uk');
+  });
+}
+
+function taskEntriesForBranch(branchId) {
+  const rank = { progress:0, todo:1, done:2 };
+  return Object.entries(branchTasks)
+    .filter(([,t]) => t.branchId === branchId)
+    .sort((a,b) => {
+      const ar = rank[a[1].status] ?? 1;
+      const br = rank[b[1].status] ?? 1;
+      return ar - br || (a[1].dueDate || '9999').localeCompare(b[1].dueDate || '9999') || (b[1].createdAt || 0) - (a[1].createdAt || 0);
+    });
+}
+
+function renderBranches() {
+  const list = document.getElementById('branch-list');
+  if (!list) return;
+  const entries = branchEntries();
+  document.getElementById('branch-count').textContent = entries.length ? `${entries.length} гілок` : '0';
+
+  if (!curBranchId || !branches[curBranchId]) curBranchId = entries[0]?.[0] || null;
+
+  list.innerHTML = entries.map(([id,b]) => {
+    const taskCount = taskEntriesForBranch(id).length;
+    const leader = b.leader || 'Керівник не вказаний';
+    return `
+      <button class="branch-item ${id===curBranchId ? 'on' : ''}" data-branch="${id}">
+        <div class="branch-item-name">${esc(b.name || 'Без назви')}</div>
+        <div class="branch-item-sub">${esc(leader)} · ${taskCount} завд.</div>
+      </button>`;
+  }).join('') || '<div class="empty" style="padding:32px 12px">Міністерств ще немає</div>';
+
+  list.querySelectorAll('[data-branch]').forEach(btn => {
+    btn.onclick = () => {
+      curBranchId = btn.dataset.branch;
+      renderBranches();
+    };
+  });
+
+  renderBranchDetail();
+  updateAdminControls();
+}
+
+function renderBranchDetail() {
+  const empty = document.getElementById('branch-empty');
+  const detail = document.getElementById('branch-detail');
+  if (!empty || !detail) return;
+  const b = curBranchId ? branches[curBranchId] : null;
+
+  if (!b) {
+    empty.style.display = 'block';
+    detail.style.display = 'none';
+    return;
+  }
+
+  const tasks = taskEntriesForBranch(curBranchId);
+  empty.style.display = 'none';
+  detail.style.display = 'block';
+  document.getElementById('branch-title').textContent = b.name || 'Без назви';
+  document.getElementById('branch-task-count').textContent = tasks.length ? `${tasks.length} завдань` : 'Немає завдань';
+  document.getElementById('branch-leader').textContent = b.leader || '—';
+  document.getElementById('branch-members').innerHTML = (b.members || []).length
+    ? b.members.map(name => `<span class="member-chip">${esc(name)}</span>`).join('')
+    : '<span class="member-chip">Немає членів</span>';
+
+  document.getElementById('btn-edit-branch').onclick = () => openBranchModal(curBranchId);
+  document.getElementById('btn-delete-branch').onclick = () => window._delBranch(curBranchId);
+  document.getElementById('btn-add-task').onclick = () => openTaskModal(null, curBranchId);
+
+  document.getElementById('task-list').innerHTML = tasks.map(([id,t]) => {
+    const done = t.status === 'done';
+    const statusClass = done ? 'ok' : t.status === 'progress' ? 'warn' : '';
+    const statusText = taskStatusText(t.status);
+    return `
+      <div class="task-item ${done ? 'done' : ''}">
+        <div class="task-title-row">
+          <div class="task-title">${esc(t.title || 'Без назви')}</div>
+          ${isAdmin ? `<div class="task-actions">
+            <button class="btn-mini" onclick="window._toggleTask('${id}')">${done ? 'Повернути' : 'Готово'}</button>
+            <button class="btn-mini" onclick="window._editTask('${id}')">Редагувати</button>
+            <button class="btn-mini" onclick="window._delTask('${id}')">Видалити</button>
+          </div>` : ''}
+        </div>
+        ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ''}
+        <div class="task-meta">
+          <span class="task-pill ${statusClass}">${statusText}</span>
+          ${t.assignee ? `<span class="task-pill">Відповідальний: ${esc(t.assignee)}</span>` : ''}
+          ${t.dueDate ? `<span class="task-pill">До: ${fmtDate(t.dueDate)}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('') || '<div class="empty" style="padding:32px 12px">Завдань для цієї гілки ще немає</div>';
+
+  updateAdminControls();
+}
+
+function renderBranchOptions() {
+  const sel = document.getElementById('m-task-branch');
+  if (!sel) return;
+  const prev = sel.value || curBranchId || '';
+  sel.innerHTML = branchEntries().map(([id,b]) => `<option value="${id}">${esc(b.name || 'Без назви')}</option>`).join('');
+  if (prev && branches[prev]) sel.value = prev;
+}
+
+function openBranchModal(id=null) {
+  if (!isAdmin) return;
+  const b = id ? branches[id] : null;
+  document.getElementById('m-branch-title').textContent = b ? '🏛️ Редагувати міністерство' : '🏛️ Нове міністерство';
+  document.getElementById('m-branch-id').value = id || '';
+  document.getElementById('m-branch-name').value = b?.name || '';
+  document.getElementById('m-branch-leader').value = b?.leader || '';
+  document.getElementById('m-branch-members').value = (b?.members || []).join('\n');
+  document.getElementById('m-branch').classList.add('open');
+}
+
+function openTaskModal(id=null, branchId=curBranchId) {
+  if (!isAdmin) return;
+  renderBranchOptions();
+  const t = id ? branchTasks[id] : null;
+  const targetBranchId = t?.branchId || branchId || branchEntries()[0]?.[0] || '';
+  document.getElementById('m-task-title').textContent = t ? '✅ Редагувати завдання' : '✅ Нове завдання';
+  document.getElementById('m-task-id').value = id || '';
+  document.getElementById('m-task-branch').value = targetBranchId;
+  document.getElementById('m-task-name').value = t?.title || '';
+  document.getElementById('m-task-assignee').value = t?.assignee || '';
+  document.getElementById('m-task-desc').value = t?.description || '';
+  document.getElementById('m-task-due').value = t?.dueDate || '';
+  document.getElementById('m-task-status').value = t?.status || 'todo';
+  document.getElementById('m-task').classList.add('open');
+}
+
+document.getElementById('btn-add-branch').onclick = () => openBranchModal();
+document.getElementById('m-branch-cancel').onclick = () => document.getElementById('m-branch').classList.remove('open');
+document.getElementById('m-branch-save').onclick = async () => {
+  if (!isAdmin) return;
+  const id = document.getElementById('m-branch-id').value;
+  const name = document.getElementById('m-branch-name').value.trim();
+  const leader = document.getElementById('m-branch-leader').value.trim();
+  const membersList = parsePeople(document.getElementById('m-branch-members').value);
+  if (!name) return;
+  const branchRef = id ? ref(db, `branches/${id}`) : push(ref(db,'branches'));
+  const existing = id ? branches[id] || {} : {};
+  await set(branchRef, {
+    name,
+    leader: leader || '—',
+    members: membersList,
+    order: Number.isFinite(existing.order) ? existing.order : Date.now()
+  });
+  curBranchId = id || branchRef.key;
+  document.getElementById('m-branch').classList.remove('open');
+  toast('Міністерство збережено');
+};
+
+document.getElementById('m-task-cancel').onclick = () => document.getElementById('m-task').classList.remove('open');
+document.getElementById('m-task-save').onclick = async () => {
+  if (!isAdmin) return;
+  const id = document.getElementById('m-task-id').value;
+  const branchId = document.getElementById('m-task-branch').value;
+  const title = document.getElementById('m-task-name').value.trim();
+  if (!branchId || !title) return;
+  const existing = id ? branchTasks[id] || {} : {};
+  const taskRef = id ? ref(db, `branchTasks/${id}`) : push(ref(db,'branchTasks'));
+  await set(taskRef, {
+    branchId,
+    title,
+    assignee: document.getElementById('m-task-assignee').value.trim(),
+    description: document.getElementById('m-task-desc').value.trim(),
+    dueDate: document.getElementById('m-task-due').value,
+    status: document.getElementById('m-task-status').value,
+    createdAt: existing.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    by: existing.by || me?.email || ''
+  });
+  curBranchId = branchId;
+  document.getElementById('m-task').classList.remove('open');
+  toast('Завдання збережено');
+};
+
+window._delBranch = async id => {
+  if(!isAdmin || !id || !confirm('Видалити це міністерство разом із його завданнями?')) return;
+  await remove(ref(db,`branches/${id}`));
+  await Promise.all(Object.entries(branchTasks)
+    .filter(([,t]) => t.branchId === id)
+    .map(([taskId]) => remove(ref(db,`branchTasks/${taskId}`))));
+  curBranchId = null;
+  toast('Міністерство видалено');
+};
+window._editTask = id => openTaskModal(id);
+window._delTask = async id => { if(!isAdmin || !confirm('Видалити завдання?')) return; await remove(ref(db,`branchTasks/${id}`)); toast('Завдання видалено'); };
+window._toggleTask = async id => {
+  if(!isAdmin) return;
+  const t = branchTasks[id] || {};
+  await set(ref(db,`branchTasks/${id}/status`), t.status === 'done' ? 'todo' : 'done');
+};
+
 // ── ADMIN ─────────────────────────────────────────────
 function renderAdmMembers() {
   const el = document.getElementById('adm-members');
@@ -1065,6 +1480,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     tab.classList.add('on');
     document.getElementById(`tp-${tab.dataset.t}`).classList.add('on');
     if (tab.dataset.t === 'sum') renderSummary();
+    if (tab.dataset.t === 'branch') renderBranches();
   };
 });
 
@@ -1082,6 +1498,26 @@ function show(s) {
 }
 function eToKey(e) { return e.replace(/\./g,','); }
 function fmtDate(d) { if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}.${m}.${y}`; }
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[ch]));
+}
+function parsePeople(text) {
+  return text
+    .split(/[\n,;]+/)
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+function taskStatusText(status) {
+  if (status === 'done') return 'Готово';
+  if (status === 'progress') return 'В роботі';
+  return 'Заплановано';
+}
 function toast(msg, type='ok') {
   const t = document.createElement('div');
   t.className = `toast ${type}`;
