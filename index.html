@@ -77,6 +77,25 @@ body{
   font-size:13px;
   line-height:1.5;
 }
+.login-code{
+  display:flex;gap:8px;margin-top:18px;
+}
+.login-code input{
+  flex:1;min-width:0;
+  background:var(--glass);border:1px solid var(--border-b);
+  border-radius:var(--r);color:var(--text);
+  font-family:'Geologica',sans-serif;font-size:15px;
+  padding:12px 14px;text-align:center;letter-spacing:.12em;
+}
+.login-code input:focus{outline:none;border-color:var(--blue)}
+.login-code button{
+  flex-shrink:0;padding:12px 14px;
+  background:var(--glass);border:1px solid var(--border-b);
+  border-radius:var(--r);color:var(--text);
+  font-family:'Geologica',sans-serif;font-weight:600;font-size:14px;
+  cursor:pointer;transition:all .15s;
+}
+.login-code button:hover{border-color:rgba(255,255,255,.22);background:var(--glass-h)}
 .login-err{
   margin-top:16px;
   padding:11px 13px;
@@ -465,6 +484,11 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Увійти через Google
     </button>
+    <div class="login-code">
+      <input id="branch-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Код">
+      <button id="btn-code-login">Увійти</button>
+    </div>
+    <div class="login-note">Код відкриває тільки завдання свого міністерства без права редагування.</div>
     <div class="login-note" id="login-loading" style="display:none">Переадресовуємо до Google...</div>
     <div class="login-err" id="login-err" style="display:none"></div>
   </div>
@@ -617,7 +641,7 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
               </div>
               <div class="task-head">
                 <div class="branch-label" style="margin-bottom:0">Завдання</div>
-                <button class="btn-prim admin-only" id="btn-add-task" style="display:none">+ Завдання</button>
+                <button class="btn-prim branch-manage-only" id="btn-add-task" style="display:none">+ Завдання</button>
               </div>
               <div class="task-list" id="task-list"></div>
             </div>
@@ -658,6 +682,7 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
     <input id="m-branch-id" type="hidden">
     <div class="f-group"><label class="f-lbl">Назва</label><input class="f-inp" id="m-branch-name" type="text" placeholder="Освіти"></div>
     <div class="f-group"><label class="f-lbl">Керівник</label><input class="f-inp" id="m-branch-leader" type="text" placeholder="Ім'я та прізвище"></div>
+    <div class="f-group"><label class="f-lbl">Код для перегляду</label><input class="f-inp" id="m-branch-code" type="text" inputmode="numeric" placeholder="9085"></div>
     <div class="f-group">
       <label class="f-lbl">Члени</label>
       <textarea class="f-inp" id="m-branch-members" rows="5" placeholder="Кожен член з нового рядка або через кому"></textarea>
@@ -679,7 +704,11 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
       <select class="f-inp sel" id="m-task-branch" style="background-image:none"></select>
     </div>
     <div class="f-group"><label class="f-lbl">Назва завдання</label><input class="f-inp" id="m-task-name" type="text" placeholder="Підготувати план роботи"></div>
-    <div class="f-group"><label class="f-lbl">Відповідальний</label><input class="f-inp" id="m-task-assignee" type="text" placeholder="Міністерство або конкретна людина"></div>
+    <div class="f-group">
+      <label class="f-lbl">Відповідальний</label>
+      <input class="f-inp" id="m-task-assignee" type="text" list="task-assignees" placeholder="Міністерство або конкретна людина">
+      <datalist id="task-assignees"></datalist>
+    </div>
     <div class="f-group"><label class="f-lbl">Опис</label><textarea class="f-inp" id="m-task-desc" rows="4" placeholder="Деталі завдання"></textarea></div>
     <div class="f-group"><label class="f-lbl">Дедлайн</label><input class="f-inp" id="m-task-due" type="date"></div>
     <div class="f-group">
@@ -752,8 +781,13 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
       <label class="f-lbl">Роль</label>
       <select class="f-inp sel" id="m-email-role" style="background-image:none">
         <option value="user">Користувач</option>
+        <option value="manager">Керівник міністерства</option>
         <option value="admin">Адміністратор</option>
       </select>
+    </div>
+    <div class="f-group" id="m-email-branch-wrap" style="display:none">
+      <label class="f-lbl">Міністерство</label>
+      <select class="f-inp sel" id="m-email-branch" style="background-image:none"></select>
     </div>
     <div class="modal-acts">
       <button class="btn-sec" id="m-email-cancel">Скасувати</button>
@@ -764,7 +798,7 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── ВСТАВТЕ ВАШ FIREBASE CONFIG ──────────────────────
@@ -786,12 +820,15 @@ const provider = new GoogleAuthProvider();
 
 let me = null, isAdmin = false;
 let members = {}, meetings = {}, curMeetId = null, curAtt = {};
-let branches = {}, branchTasks = {}, curBranchId = null;
+let branches = {}, branchTasks = {}, allowedEmails = {}, curBranchId = null;
+let accessMode = 'guest', accessRole = 'guest', managedBranchId = null;
 let attUnsubscribe = null;
 let listenersStarted = false;
 const REDIRECT_FLAG = 'attendanceGoogleRedirectPending';
+const CODE_SESSION_KEY = 'attendanceBranchCodeId';
+const CODE_PENDING = '__pending__';
 const DEFAULT_BRANCHES = [
-  { id:'education', name:'Освіти', leader:'Ярина Чопик', members:['Винницький Іван','Марта Харів','Марта Грицьків','Кушлик Матвій','Радзієвська Ангеліна'] },
+  { id:'education', name:'Освіти', leader:'Ярина Чопик', accessCode:'9085', members:['Винницький Іван','Марта Харів','Марта Грицьків','Кушлик Матвій','Радзієвська Ангеліна'] },
   { id:'finance', name:'Фінансів', leader:'Ростик Дюк', members:['Кухар Аня'] },
   { id:'info', name:'Інформації', leader:'Яна Бунь', members:['Віка Грицай','Маркіян Іванців','Аня Лагуш','Андріана Макутська'] },
   { id:'sport', name:'Спорту', leader:'Красінський Денис', members:[] },
@@ -811,6 +848,18 @@ function setRedirectPending(value) {
 function hasRedirectPending() {
   try { return localStorage.getItem(REDIRECT_FLAG) === '1'; }
   catch(e) { return false; }
+}
+
+function setCodeSession(branchId) {
+  try {
+    if (branchId) sessionStorage.setItem(CODE_SESSION_KEY, branchId);
+    else sessionStorage.removeItem(CODE_SESSION_KEY);
+  } catch(e) {}
+}
+
+function getCodeSession() {
+  try { return sessionStorage.getItem(CODE_SESSION_KEY); }
+  catch(e) { return null; }
 }
 
 function shouldTryPopupFirst(isIOS, isSafari) {
@@ -880,11 +929,45 @@ document.getElementById('btn-login').onclick = async () => {
   }
 };
 
-document.getElementById('btn-out').onclick = () => signOut(auth);
-document.getElementById('btn-denied-out').onclick = () => signOut(auth);
+document.getElementById('btn-code-login').onclick = async () => {
+  const code = document.getElementById('branch-code').value.trim();
+  document.getElementById('login-err').style.display = 'none';
+  if (!code) return showLoginErr('Введіть код міністерства.');
+
+  try {
+    setCodeSession(CODE_PENDING);
+    await signInAnonymously(auth);
+    const snap = await get(ref(db, 'branches'));
+    const allBranches = snap.val() || {};
+    const match = Object.entries(allBranches).find(([,b]) => String(b.accessCode || '').trim() === code);
+
+    if (!match) {
+      setCodeSession(null);
+      await signOut(auth);
+      showLoginErr('Код не знайдено. Перевірте цифри або зверніться до адміністратора.');
+      return;
+    }
+
+    setCodeSession(match[0]);
+    await handleCodeUser(match[0]);
+  } catch(e) {
+    console.error('code login:', e);
+    setCodeSession(null);
+    showLoginErr(e.code === 'auth/operation-not-allowed'
+      ? 'Для входу за кодом треба увімкнути Anonymous у Firebase Authentication.'
+      : (e.code || e.message || 'Не вдалося увійти за кодом'));
+  }
+};
+
+document.getElementById('btn-out').onclick = () => { setCodeSession(null); signOut(auth); };
+document.getElementById('btn-denied-out').onclick = () => { setCodeSession(null); signOut(auth); };
 
 async function handleSignedInUser(user) {
   setRedirectPending(false);
+  setCodeSession(null);
+  accessMode = 'gmail';
+  accessRole = 'user';
+  managedBranchId = null;
   const eKey = eToKey(user.email);
   const snap = await get(ref(db, `allowedEmails/${eKey}`));
 
@@ -893,11 +976,15 @@ async function handleSignedInUser(user) {
     if (!anySnap.exists()) {
       await set(ref(db, `allowedEmails/${eKey}`), { role: 'admin' });
       isAdmin = true;
+      accessRole = 'admin';
     } else {
       show('denied'); return;
     }
   } else {
-    isAdmin = snap.val()?.role === 'admin';
+    const access = snap.val() || {};
+    accessRole = access.role || 'user';
+    managedBranchId = access.branchId || null;
+    isAdmin = accessRole === 'admin';
   }
 
   me = user;
@@ -906,12 +993,35 @@ async function handleSignedInUser(user) {
   document.getElementById('adm-tab').style.display = isAdmin ? 'block' : 'none';
   updateAdminControls();
 
-  show('app');
   if (isAdmin) await ensureDefaultBranches();
+  show('app');
   if (!listenersStarted) {
     initListeners();
     listenersStarted = true;
   }
+  if (accessRole === 'manager' && managedBranchId) {
+    curBranchId = managedBranchId;
+    activateTab('branch');
+  }
+}
+
+async function handleCodeUser(branchId) {
+  accessMode = 'code';
+  accessRole = 'viewer';
+  managedBranchId = branchId;
+  isAdmin = false;
+  me = { displayName:'Код міністерства', email:'' };
+  curBranchId = branchId;
+  document.getElementById('adm-tab').style.display = 'none';
+  document.getElementById('u-photo').src = '';
+  document.getElementById('u-name').textContent = 'Перегляд';
+  updateAdminControls();
+  show('app');
+  if (!listenersStarted) {
+    initListeners();
+    listenersStarted = true;
+  }
+  activateTab('branch');
 }
 
 onAuthStateChanged(auth, async user => {
@@ -921,6 +1031,9 @@ onAuthStateChanged(auth, async user => {
 
     me = null;
     isAdmin = false;
+    accessMode = 'guest';
+    accessRole = 'guest';
+    managedBranchId = null;
     document.getElementById('adm-tab').style.display = 'none';
     updateAdminControls();
     document.getElementById('btn-login').style.display = 'flex';
@@ -934,27 +1047,44 @@ onAuthStateChanged(auth, async user => {
     return;
   }
 
+  if (user.isAnonymous) {
+    const branchId = getCodeSession();
+    if (branchId === CODE_PENDING) return;
+    if (branchId) { await handleCodeUser(branchId); return; }
+    await signOut(auth);
+    return;
+  }
+
   await handleSignedInUser(user);
 });
 
 // ── DATA LISTENERS ────────────────────────────────────
 function initListeners() {
-  onValue(ref(db, 'members'), s => {
-    members = s.val() || {};
-    renderAttTable();
-    renderSummary();
-    renderAdmMembers();
-  });
-  onValue(ref(db, 'meetings'), s => {
-    meetings = s.val() || {};
-    renderMeetSel();
-    renderAdmMeetings();
-  });
-  onValue(ref(db, 'allowedEmails'), s => renderAdmEmails(s.val() || {}));
+  if (accessMode !== 'code') {
+    onValue(ref(db, 'members'), s => {
+      members = s.val() || {};
+      renderAttTable();
+      renderSummary();
+      renderAdmMembers();
+    });
+    onValue(ref(db, 'meetings'), s => {
+      meetings = s.val() || {};
+      renderMeetSel();
+      renderAdmMeetings();
+    });
+    if (isAdmin) {
+      onValue(ref(db, 'allowedEmails'), s => {
+        allowedEmails = s.val() || {};
+        renderAdmEmails(allowedEmails);
+      });
+    }
+  }
   onValue(ref(db, 'branches'), s => {
     branches = s.val() || {};
     renderBranches();
     renderBranchOptions();
+    renderEmailBranchOptions();
+    renderAdmEmails(allowedEmails);
   });
   onValue(ref(db, 'branchTasks'), s => {
     branchTasks = s.val() || {};
@@ -1150,12 +1280,18 @@ async function renderSummary() {
 async function ensureDefaultBranches() {
   try {
     const snap = await get(ref(db, 'branches'));
-    if (snap.exists()) return;
-    const seed = {};
+    const seed = snap.val() || {};
+    let changed = false;
     DEFAULT_BRANCHES.forEach((b, i) => {
-      seed[b.id] = { name:b.name, leader:b.leader, members:b.members, order:i };
+      if (!seed[b.id]) {
+        seed[b.id] = { name:b.name, leader:b.leader, members:b.members, accessCode:b.accessCode || '', order:i };
+        changed = true;
+      } else if (b.accessCode && !seed[b.id].accessCode) {
+        seed[b.id] = { ...seed[b.id], accessCode:b.accessCode };
+        changed = true;
+      }
     });
-    await set(ref(db, 'branches'), seed);
+    if (changed) await set(ref(db, 'branches'), seed);
   } catch(e) {
     console.warn('default branches:', e);
   }
@@ -1165,10 +1301,30 @@ function updateAdminControls() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+  document.querySelectorAll('.branch-manage-only').forEach(el => {
+    el.style.display = canManageBranch(curBranchId) ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(tab => {
+    const section = tab.dataset.t;
+    if (section === 'adm') tab.style.display = isAdmin ? '' : 'none';
+    else if (accessMode === 'code') tab.style.display = section === 'branch' ? '' : 'none';
+    else tab.style.display = '';
+  });
+}
+
+function canManageBranch(branchId) {
+  return !!branchId && (isAdmin || (accessRole === 'manager' && managedBranchId === branchId));
+}
+
+function canViewBranch(branchId) {
+  if (!branchId) return false;
+  if (accessMode === 'code') return managedBranchId === branchId;
+  if (accessRole === 'manager') return managedBranchId === branchId;
+  return true;
 }
 
 function branchEntries() {
-  return Object.entries(branches).sort((a,b) => {
+  return Object.entries(branches).filter(([id]) => canViewBranch(id)).sort((a,b) => {
     const ao = Number.isFinite(a[1].order) ? a[1].order : 999999;
     const bo = Number.isFinite(b[1].order) ? b[1].order : 999999;
     return ao - bo || (a[1].name || '').localeCompare(b[1].name || '', 'uk');
@@ -1249,7 +1405,7 @@ function renderBranchDetail() {
       <div class="task-item ${done ? 'done' : ''}">
         <div class="task-title-row">
           <div class="task-title">${esc(t.title || 'Без назви')}</div>
-          ${isAdmin ? `<div class="task-actions">
+          ${canManageBranch(t.branchId) ? `<div class="task-actions">
             <button class="btn-mini" onclick="window._toggleTask('${id}')">${done ? 'Повернути' : 'Готово'}</button>
             <button class="btn-mini" onclick="window._editTask('${id}')">Редагувати</button>
             <button class="btn-mini" onclick="window._delTask('${id}')">Видалити</button>
@@ -1275,6 +1431,27 @@ function renderBranchOptions() {
   if (prev && branches[prev]) sel.value = prev;
 }
 
+function renderEmailBranchOptions() {
+  const sel = document.getElementById('m-email-branch');
+  if (!sel) return;
+  const prev = sel.value || branchEntries()[0]?.[0] || '';
+  sel.innerHTML = branchEntries().map(([id,b]) => `<option value="${id}">${esc(b.name || 'Без назви')}</option>`).join('');
+  if (prev && branches[prev]) sel.value = prev;
+}
+
+function updateEmailRoleFields() {
+  const role = document.getElementById('m-email-role').value;
+  document.getElementById('m-email-branch-wrap').style.display = role === 'manager' ? 'block' : 'none';
+}
+
+function renderTaskAssigneeOptions(branchId) {
+  const list = document.getElementById('task-assignees');
+  if (!list) return;
+  const b = branches[branchId] || {};
+  const people = parsePeople([b.leader, ...(b.members || [])].filter(Boolean).join('\n'));
+  list.innerHTML = [...new Set(people)].map(name => `<option value="${esc(name)}"></option>`).join('');
+}
+
 function openBranchModal(id=null) {
   if (!isAdmin) return;
   const b = id ? branches[id] : null;
@@ -1282,18 +1459,20 @@ function openBranchModal(id=null) {
   document.getElementById('m-branch-id').value = id || '';
   document.getElementById('m-branch-name').value = b?.name || '';
   document.getElementById('m-branch-leader').value = b?.leader || '';
+  document.getElementById('m-branch-code').value = b?.accessCode || '';
   document.getElementById('m-branch-members').value = (b?.members || []).join('\n');
   document.getElementById('m-branch').classList.add('open');
 }
 
 function openTaskModal(id=null, branchId=curBranchId) {
-  if (!isAdmin) return;
   renderBranchOptions();
   const t = id ? branchTasks[id] : null;
   const targetBranchId = t?.branchId || branchId || branchEntries()[0]?.[0] || '';
+  if (!canManageBranch(targetBranchId)) return;
   document.getElementById('m-task-title').textContent = t ? '✅ Редагувати завдання' : '✅ Нове завдання';
   document.getElementById('m-task-id').value = id || '';
   document.getElementById('m-task-branch').value = targetBranchId;
+  renderTaskAssigneeOptions(targetBranchId);
   document.getElementById('m-task-name').value = t?.title || '';
   document.getElementById('m-task-assignee').value = t?.assignee || '';
   document.getElementById('m-task-desc').value = t?.description || '';
@@ -1309,6 +1488,7 @@ document.getElementById('m-branch-save').onclick = async () => {
   const id = document.getElementById('m-branch-id').value;
   const name = document.getElementById('m-branch-name').value.trim();
   const leader = document.getElementById('m-branch-leader').value.trim();
+  const accessCode = document.getElementById('m-branch-code').value.trim();
   const membersList = parsePeople(document.getElementById('m-branch-members').value);
   if (!name) return;
   const branchRef = id ? ref(db, `branches/${id}`) : push(ref(db,'branches'));
@@ -1316,6 +1496,7 @@ document.getElementById('m-branch-save').onclick = async () => {
   await set(branchRef, {
     name,
     leader: leader || '—',
+    accessCode,
     members: membersList,
     order: Number.isFinite(existing.order) ? existing.order : Date.now()
   });
@@ -1325,11 +1506,12 @@ document.getElementById('m-branch-save').onclick = async () => {
 };
 
 document.getElementById('m-task-cancel').onclick = () => document.getElementById('m-task').classList.remove('open');
+document.getElementById('m-task-branch').onchange = e => renderTaskAssigneeOptions(e.target.value);
 document.getElementById('m-task-save').onclick = async () => {
-  if (!isAdmin) return;
   const id = document.getElementById('m-task-id').value;
   const branchId = document.getElementById('m-task-branch').value;
   const title = document.getElementById('m-task-name').value.trim();
+  if (!canManageBranch(branchId)) return;
   if (!branchId || !title) return;
   const existing = id ? branchTasks[id] || {} : {};
   const taskRef = id ? ref(db, `branchTasks/${id}`) : push(ref(db,'branchTasks'));
@@ -1359,10 +1541,15 @@ window._delBranch = async id => {
   toast('Міністерство видалено');
 };
 window._editTask = id => openTaskModal(id);
-window._delTask = async id => { if(!isAdmin || !confirm('Видалити завдання?')) return; await remove(ref(db,`branchTasks/${id}`)); toast('Завдання видалено'); };
-window._toggleTask = async id => {
-  if(!isAdmin) return;
+window._delTask = async id => {
   const t = branchTasks[id] || {};
+  if(!canManageBranch(t.branchId) || !confirm('Видалити завдання?')) return;
+  await remove(ref(db,`branchTasks/${id}`));
+  toast('Завдання видалено');
+};
+window._toggleTask = async id => {
+  const t = branchTasks[id] || {};
+  if(!canManageBranch(t.branchId)) return;
   await set(ref(db,`branchTasks/${id}/status`), t.status === 'done' ? 'todo' : 'done');
 };
 
@@ -1383,7 +1570,7 @@ function renderAdmEmails(emails) {
   el.innerHTML = Object.entries(emails).map(([k,d]) => `
     <div class="a-item">
       <div><div class="a-item-name">${k.replace(/,/g,'.')}</div>
-        <div class="a-item-sub">${d.role==='admin' ? '👑 Адмін' : '👤 Користувач'}</div></div>
+        <div class="a-item-sub">${emailRoleText(d)}</div></div>
       <button class="btn-del" onclick="window._delEmail('${k}')">×</button>
     </div>`).join('');
 }
@@ -1460,28 +1647,39 @@ document.getElementById('m-mem-save').onclick = async () => {
 
 document.getElementById('btn-add-email').onclick = () => {
   document.getElementById('m-email-val').value = '';
+  document.getElementById('m-email-role').value = 'user';
+  renderEmailBranchOptions();
+  updateEmailRoleFields();
   document.getElementById('m-email').classList.add('open');
 };
+document.getElementById('m-email-role').onchange = updateEmailRoleFields;
 document.getElementById('m-email-cancel').onclick = () => document.getElementById('m-email').classList.remove('open');
 document.getElementById('m-email-save').onclick = async () => {
   const email = document.getElementById('m-email-val').value.trim().toLowerCase();
   const role = document.getElementById('m-email-role').value;
   if (!email) return;
-  await set(ref(db,`allowedEmails/${eToKey(email)}`), { role });
+  const branchId = role === 'manager' ? document.getElementById('m-email-branch').value : null;
+  await set(ref(db,`allowedEmails/${eToKey(email)}`), branchId ? { role, branchId } : { role });
   document.getElementById('m-email').classList.remove('open');
   toast('Доступ додано');
 };
 
 // ── TABS ──────────────────────────────────────────────
+function activateTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('on'));
+  const tab = document.querySelector(`.tab[data-t="${name}"]`);
+  const pane = document.getElementById(`tp-${name}`);
+  if (!tab || !pane) return;
+  tab.classList.add('on');
+  pane.classList.add('on');
+  if (name === 'sum') renderSummary();
+  if (name === 'branch') renderBranches();
+  updateAdminControls();
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.onclick = () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('on'));
-    tab.classList.add('on');
-    document.getElementById(`tp-${tab.dataset.t}`).classList.add('on');
-    if (tab.dataset.t === 'sum') renderSummary();
-    if (tab.dataset.t === 'branch') renderBranches();
-  };
+  tab.onclick = () => activateTab(tab.dataset.t);
 });
 
 // Close modals on backdrop click
@@ -1517,6 +1715,14 @@ function taskStatusText(status) {
   if (status === 'done') return 'Готово';
   if (status === 'progress') return 'В роботі';
   return 'Заплановано';
+}
+function emailRoleText(d={}) {
+  if (d.role === 'admin') return '👑 Адмін';
+  if (d.role === 'manager') {
+    const name = branches[d.branchId]?.name || 'міністерство не вибрано';
+    return `🏛️ Керівник: ${name}`;
+  }
+  return '👤 Користувач';
 }
 function toast(msg, type='ok') {
   const t = document.createElement('div');
