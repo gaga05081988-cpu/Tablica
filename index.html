@@ -798,7 +798,7 @@ tbody td{padding:13px 14px;font-size:14px;vertical-align:middle}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, get, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── ВСТАВТЕ ВАШ FIREBASE CONFIG ──────────────────────
@@ -818,13 +818,16 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
+// ── Google OAuth Client ID (для прямого OAuth без firebaseapp.com) ──
+const GOOGLE_CLIENT_ID = '710429148693-bkti37lr7h7050r0jcfqlin23vrnfj23.apps.googleusercontent.com';
+
 let me = null, isAdmin = false;
 let members = {}, meetings = {}, curMeetId = null, curAtt = {};
 let branches = {}, branchTasks = {}, allowedEmails = {}, curBranchId = null;
 let accessMode = 'guest', accessRole = 'guest', managedBranchId = null;
 let attUnsubscribe = null;
 let listenersStarted = false;
-const REDIRECT_FLAG = 'attendanceGoogleRedirectPending';
+let oauthHandled = false; // flag: direct OAuth token was processed
 const CODE_SESSION_KEY = 'attendanceBranchCodeId';
 const CODE_PENDING = '__pending__';
 const DEFAULT_BRANCHES = [
@@ -838,18 +841,6 @@ const DEFAULT_BRANCHES = [
   { id:'secretary', name:'Секретар', leader:'Марічка Томенюк', members:[] }
 ];
 
-function setRedirectPending(value) {
-  try {
-    if (value) localStorage.setItem(REDIRECT_FLAG, '1');
-    else localStorage.removeItem(REDIRECT_FLAG);
-  } catch(e) {}
-}
-
-function hasRedirectPending() {
-  try { return localStorage.getItem(REDIRECT_FLAG) === '1'; }
-  catch(e) { return false; }
-}
-
 function setCodeSession(branchId) {
   try {
     if (branchId) sessionStorage.setItem(CODE_SESSION_KEY, branchId);
@@ -862,12 +853,49 @@ function getCodeSession() {
   catch(e) { return null; }
 }
 
-function shouldTryPopupFirst(isIOS, isSafari) {
-  return (isIOS || isSafari)
-    && location.protocol !== 'file:'
-    && !!location.hostname
-    && location.hostname !== firebaseConfig.authDomain;
+// ── Direct Google OAuth (обхід firebaseapp.com для iOS Safari) ──
+function startDirectGoogleOAuth() {
+  const redirectUri = window.location.href.split('#')[0].split('?')[0];
+  const nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  try { sessionStorage.setItem('oauth_nonce', nonce); } catch(e) {}
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'id_token',
+    scope: 'openid email profile',
+    nonce: nonce,
+    prompt: 'select_account'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
+
+async function handleOAuthHashRedirect() {
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('id_token')) return false;
+  try {
+    const params = new URLSearchParams(hash.substring(1));
+    const idToken = params.get('id_token');
+    if (!idToken) return false;
+    // Clean URL hash
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    // Show loading state
+    document.getElementById('s-login').innerHTML = '<div class="login-card"><div class="lc-badge">Науковий ліцей ім. Б. Лепкого</div><div class="lc-title">⏳ Завершення входу...</div><div class="lc-sub">Зачекайте, авторизуємо вас</div></div>';
+    // Sign in to Firebase with the Google token
+    const credential = GoogleAuthProvider.credential(idToken);
+    const result = await signInWithCredential(auth, credential);
+    oauthHandled = true;
+    await handleSignedInUser(result.user);
+    return true;
+  } catch(e) {
+    console.error('OAuth hash sign-in error:', e);
+    showLoginErr('Помилка входу: ' + (e.code || e.message));
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return false;
+  }
+}
+
+// Process OAuth redirect on page load
+const oauthReady = handleOAuthHashRedirect();
 
 // ── AUTH ─────────────────────────────────────────────
 function showLoginErr(msg) {
@@ -877,52 +905,37 @@ function showLoginErr(msg) {
   el.textContent = msg;
 }
 
-// Handle redirect result first (for iOS/mobile after redirect)
-const redirectResultReady = getRedirectResult(auth).then(async result => {
-  if (result?.user) {
-    await handleSignedInUser(result.user);
-  }
-  return result;
-}).catch(e => {
-  console.error('redirect result:', e);
-  setRedirectPending(false);
-  showLoginErr(e.code || e.message || 'Помилка входу');
-  return null;
-});
-
 document.getElementById('btn-login').onclick = async () => {
   document.getElementById('login-err').style.display = 'none';
   document.getElementById('login-loading').style.display = 'none';
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  if ((isIOS || isSafari) && location.protocol === 'file:') {
-    showLoginErr('На iPhone відкрийте опубліковане посилання сайту (https://...), не файл index.html. Google-вхід не працює з локального файлу.');
+
+  if (location.protocol === 'file:') {
+    showLoginErr('Відкрийте опубліковане посилання сайту (https://...), не файл index.html.');
     return;
   }
-  try {
-    if (shouldTryPopupFirst(isIOS, isSafari)) {
-      try {
-        const popupResult = await signInWithPopup(auth, provider);
-        if (popupResult?.user) await handleSignedInUser(popupResult.user);
-        return;
-      } catch(popupError) {
-        console.warn('popup sign-in failed, falling back to redirect:', popupError);
-        if (popupError.code === 'auth/popup-closed-by-user') throw popupError;
-      }
-    }
 
-    if (isIOS || isSafari) {
-      document.getElementById('login-loading').style.display = 'block';
-      document.getElementById('btn-login').style.display = 'none';
-      setRedirectPending(true);
-      await signInWithRedirect(auth, provider);
-    } else {
-      const popupResult = await signInWithPopup(auth, provider);
-      if (popupResult?.user) await handleSignedInUser(popupResult.user);
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  // На десктопі — popup (швидше)
+  if (!isIOS && !isSafari) {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result?.user) await handleSignedInUser(result.user);
+    } catch(e) {
+      console.error(e);
+      showLoginErr(e.code || e.message || 'Помилка входу');
     }
+    return;
+  }
+
+  // На iOS/Safari — прямий Google OAuth (без firebaseapp.com)
+  try {
+    document.getElementById('login-loading').style.display = 'block';
+    document.getElementById('btn-login').style.display = 'none';
+    startDirectGoogleOAuth();
   } catch(e) {
     console.error(e);
-    setRedirectPending(false);
     document.getElementById('login-loading').style.display = 'none';
     document.getElementById('btn-login').style.display = 'flex';
     showLoginErr(e.code || e.message || 'Помилка входу');
@@ -1025,10 +1038,11 @@ async function handleCodeUser(branchId) {
 }
 
 onAuthStateChanged(auth, async user => {
-  if (!user) {
-    const redirectResult = await redirectResultReady;
-    if (redirectResult?.user) return;
+  // If direct OAuth already handled sign-in, skip
+  const oauthResult = await oauthReady;
+  if (oauthResult) return;
 
+  if (!user) {
     me = null;
     isAdmin = false;
     accessMode = 'guest';
@@ -1036,14 +1050,11 @@ onAuthStateChanged(auth, async user => {
     managedBranchId = null;
     document.getElementById('adm-tab').style.display = 'none';
     updateAdminControls();
-    document.getElementById('btn-login').style.display = 'flex';
-    document.getElementById('login-loading').style.display = 'none';
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) btnLogin.style.display = 'flex';
+    const loadingEl = document.getElementById('login-loading');
+    if (loadingEl) loadingEl.style.display = 'none';
     show('login');
-
-    if (hasRedirectPending()) {
-      setRedirectPending(false);
-      showLoginErr('Google повернув назад, але Safari не зберіг сесію. Відкрийте сайт через домен Firebase Hosting .firebaseapp.com або змініть authDomain на домен, де відкритий сайт.');
-    }
     return;
   }
 
